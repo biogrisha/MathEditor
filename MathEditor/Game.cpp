@@ -92,7 +92,22 @@ void Game::Render()
     PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, L"Render");
 
     // TODO: Add your rendering code here.
+    //Sprites Start
+    ID3D12DescriptorHeap* heaps[] = { m_resourceDescriptors->Heap() };
+    commandList->SetDescriptorHeaps(static_cast<UINT>(std::size(heaps)), heaps);
 
+    m_spriteBatch->Begin(commandList);
+    RECT rect;
+    rect.top = 0;
+    rect.left = 0;
+    rect.bottom = 100;
+    rect.right = 100;
+    m_spriteBatch->Draw(m_resourceDescriptors->GetGpuHandle(Descriptors::Cat),
+        GetTextureSize(m_texture.Get()),
+        m_screenPos, &rect, Colors::White, 0.f, m_origin);
+
+    m_spriteBatch->End();
+    //SpritesEnd
     PIXEndEvent(commandList);
 
     // Show the new frame.
@@ -172,6 +187,7 @@ void Game::OnWindowSizeChanged(int width, int height)
     CreateWindowSizeDependentResources();
 
     // TODO: Game window is being resized.
+    
 }
 
 // Properties
@@ -204,12 +220,54 @@ void Game::CreateDeviceDependentResources()
     m_graphicsMemory = std::make_unique<GraphicsMemory>(device);
 
     // TODO: Initialize device dependent objects here (independent of window size).
+//---------------------------------Sprites Start
+    m_resourceDescriptors = std::make_unique<DescriptorHeap>(device,
+    Descriptors::Count);
+
+    ResourceUploadBatch resourceUpload(device);
+
+    resourceUpload.Begin();
+
+    DX::ThrowIfFailed(
+        CreateWICTextureFromFile(device, resourceUpload, L"cat.png",
+        m_texture.ReleaseAndGetAddressOf()));
+
+    CreateShaderResourceView(device, m_texture.Get(),
+        m_resourceDescriptors->GetCpuHandle(Descriptors::Cat));
+//---------------
+    RenderTargetState rtState(m_deviceResources->GetBackBufferFormat(),
+    m_deviceResources->GetDepthBufferFormat());
+
+    SpriteBatchPipelineStateDescription pd(rtState,
+    &CommonStates::NonPremultiplied);
+    m_spriteBatch = std::make_unique<SpriteBatch>(device, resourceUpload, pd);
+
+    XMUINT2 catSize = GetTextureSize(m_texture.Get());
+
+    m_origin.x = float(catSize.x / 2);
+    m_origin.y = float(catSize.y / 2);
+//------------------------
+    auto uploadResourcesFinished = resourceUpload.End(
+        m_deviceResources->GetCommandQueue());
+
+    uploadResourcesFinished.wait();
+//----------------------Sprites end
+
+    
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.
 void Game::CreateWindowSizeDependentResources()
 {
     // TODO: Initialize windows-size dependent objects here.
+//-------------Sprites start
+    auto viewport = m_deviceResources->GetScreenViewport();
+    m_spriteBatch->SetViewport(viewport);
+
+    auto size = m_deviceResources->GetOutputSize();
+    m_screenPos.x = float(size.right) / 2.f;
+    m_screenPos.y = float(size.bottom) / 2.f;
+//-------------Sprites End
 }
 
 void Game::OnDeviceLost()
@@ -218,6 +276,10 @@ void Game::OnDeviceLost()
 
     // If using the DirectX Tool Kit for DX12, uncomment this line:
     m_graphicsMemory.reset();
+
+    m_texture.Reset();
+    m_resourceDescriptors.reset();
+    m_spriteBatch.reset();
 }
 
 void Game::OnDeviceRestored()
