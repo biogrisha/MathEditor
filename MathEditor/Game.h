@@ -65,14 +65,18 @@ private:
     std::unique_ptr<DirectX::GraphicsMemory> m_graphicsMemory;
     std::unique_ptr<DirectX::DescriptorHeap> m_resourceDescriptors;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_texture;
+    std::unique_ptr<DirectX::SpriteFont> m_font;
 
     enum Descriptors
     {
         Cat,
+        MyFont,
         Count
     };
 
     std::unique_ptr<DirectX::SpriteBatch> m_spriteBatch;
     DirectX::SimpleMath::Vector2 m_screenPos;
     DirectX::SimpleMath::Vector2 m_origin;
+
+    DirectX::SimpleMath::Vector2 m_fontPos;
 };

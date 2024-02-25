@@ -102,10 +102,24 @@ void Game::Render()
     rect.left = 0;
     rect.bottom = 100;
     rect.right = 100;
-    m_spriteBatch->Draw(m_resourceDescriptors->GetGpuHandle(Descriptors::Cat),
-        GetTextureSize(m_texture.Get()),
-        m_screenPos, &rect, Colors::White, 0.f, m_origin);
 
+    //Text
+    //Sprite
+    //m_spriteBatch->Draw(m_resourceDescriptors->GetGpuHandle(Descriptors::Cat),
+    //    GetTextureSize(m_texture.Get()),
+    //    m_screenPos, &rect, Colors::Black, 0.f, m_origin);
+
+    
+
+    const wchar_t* text = L"b"; // Unicode heart symbol
+    Vector2 origin = m_font->MeasureString(text) / 2.f;
+    m_font->DrawString(m_spriteBatch.get(), text, m_fontPos, Colors::White, 0.f, origin);
+
+   
+
+
+    
+    
     m_spriteBatch->End();
     //SpritesEnd
     PIXEndEvent(commandList);
@@ -228,6 +242,17 @@ void Game::CreateDeviceDependentResources()
 
     resourceUpload.Begin();
 
+    //Loading Font
+    m_font = std::make_unique<SpriteFont>(device, resourceUpload,
+        L"Assets/xboxController.spritefont",
+        m_resourceDescriptors->GetCpuHandle(Descriptors::MyFont),
+        m_resourceDescriptors->GetGpuHandle(Descriptors::MyFont));
+    // m_font = std::make_unique<SpriteFont>(device, resourceUpload,
+    //     L"myfile.spritefont",
+    //     m_resourceDescriptors->GetCpuHandle(Descriptors::MyFont),
+    //     m_resourceDescriptors->GetGpuHandle(Descriptors::MyFont));
+
+    //Creating texture
     DX::ThrowIfFailed(
         CreateWICTextureFromFile(device, resourceUpload, L"cat.png",
         m_texture.ReleaseAndGetAddressOf()));
@@ -267,6 +292,9 @@ void Game::CreateWindowSizeDependentResources()
     auto size = m_deviceResources->GetOutputSize();
     m_screenPos.x = float(size.right) / 2.f;
     m_screenPos.y = float(size.bottom) / 2.f;
+
+    m_fontPos.x = float(size.right) / 2.f;
+    m_fontPos.y = float(size.bottom) / 2.f;
 //-------------Sprites End
 }
 
@@ -280,6 +308,8 @@ void Game::OnDeviceLost()
     m_texture.Reset();
     m_resourceDescriptors.reset();
     m_spriteBatch.reset();
+    m_font.reset();
+    m_resourceDescriptors.reset();
 }
 
 void Game::OnDeviceRestored()
